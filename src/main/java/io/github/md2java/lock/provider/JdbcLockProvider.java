@@ -85,6 +85,7 @@ public class JdbcLockProvider implements LockProvider {
 
 	@Override
 	public Map<String, Object> monitorLock(String lockName) {
+		log.info("monitor scheduler started...");
 		Map<String, Object> lockInfo = findLockInfo(lockName);
 		MemoryUtil.updateLockInfo(lockName, lockInfo);
 		if (isNeedToSwitchNode(lockInfo)) {
