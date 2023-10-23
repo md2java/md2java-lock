@@ -1,33 +1,31 @@
 package io.github.md2java.lock.util;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.annotation.PostConstruct;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationContext;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import io.github.md2java.lock.annotation.ClusterLock;
 import io.github.md2java.lock.annotation.EnableClusterLock;
 import io.github.md2java.lock.model.LockInfo;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-@Service
 @Slf4j
+@RequiredArgsConstructor
+@Component
 public class BeanScannerUtil {
 
-	@Autowired
-	private ApplicationContext applicationContext;
-
+	private final ApplicationContext applicationContext;
 	private static Map<String, ClusterLock> configuredLocks;
-	 private static EnableClusterLock enableClusterLock;
+	private static EnableClusterLock enableClusterLock;
 
-	@PostConstruct
 	public void init() {
 		enableClusterLock = findEnableClusterLock();
 		configuredLocks = findAllClusterLock();
@@ -35,15 +33,16 @@ public class BeanScannerUtil {
 	}
 
 	private EnableClusterLock findEnableClusterLock() {
-		Collection<Object> values = applicationContext.getBeansWithAnnotation(EnableClusterLock.class).values();
-		Optional<Object> findFirst = values.stream().findFirst();
+		Collection<String> values = applicationContext.getBeansWithAnnotation(EnableClusterLock.class).keySet();
+		Optional<String> findFirst = values.stream().findFirst();
 		if (findFirst.isPresent()) {
-			EnableClusterLock annotation = findFirst.get().getClass().getAnnotation(EnableClusterLock.class);
-			return annotation;
+			Class<? extends Object> class1 = applicationContext.getBean(findFirst.get()).getClass();
+			EnableClusterLock extractCustomAnnotation = extractCustomAnnotation(class1, EnableClusterLock.class);
+			return extractCustomAnnotation;
 		}
 		return null;
 
-	}	
+	}
 
 	public Map<String, ClusterLock> findAllClusterLock() {
 		Map<String, ClusterLock> ret = new ConcurrentHashMap<String, ClusterLock>();
@@ -52,6 +51,9 @@ public class BeanScannerUtil {
 		for (String beanName : beanNames) {
 			Object bean = applicationContext.getBean(beanName);
 			Class<?> beanClass = bean.getClass();
+			if(StringUtils.contains(String.valueOf(beanClass), "$")) {
+				beanClass = beanClass.getSuperclass();
+			}
 			for (Method method : beanClass.getDeclaredMethods()) {
 				if (method.isAnnotationPresent(ClusterLock.class)) {
 					ClusterLock clusterLock = method.getAnnotation(ClusterLock.class);
@@ -70,7 +72,7 @@ public class BeanScannerUtil {
 	}
 
 	private boolean isMonitorSpanLess(ClusterLock clusterLock) {
-		return enableClusterLock.monitorAt() < clusterLock.updateAt()+1*60*100;
+		return enableClusterLock.monitorAt() < clusterLock.updateAt() + 1 * 60 * 100;
 	}
 
 	public static Map<String, ClusterLock> configuredLocks() {
@@ -80,4 +82,21 @@ public class BeanScannerUtil {
 	public static EnableClusterLock enableClusterLock() {
 		return enableClusterLock;
 	}
+
+	public static <T extends Annotation> T extractCustomAnnotation(Class<?> clazz, Class<T> annotationType) {
+		T annotation = clazz.getAnnotation(annotationType);
+
+		if (annotation == null) {
+			// If the class itself doesn't have the annotation, try to find it in its
+			// superclasses
+			Class<?> superclass = clazz.getSuperclass();
+			while (superclass != null && annotation == null) {
+				annotation = superclass.getAnnotation(annotationType);
+				superclass = superclass.getSuperclass();
+			}
+		}
+
+		return annotation;
+	}
+
 }

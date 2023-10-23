@@ -1,6 +1,6 @@
 package io.github.md2java.lock.service;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 
 import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -25,7 +25,7 @@ public class LockServiceImpl implements LockService {
 		if (isActiveNodeSame(lockInfo)) {
 			try {
 				ret = pjp.proceed(pjp.getArgs());
-				lockInfo.setLastrun(LocalDateTime.now());
+				lockInfo.setLastrun(new Date());
 			} catch (Throwable e) {
 				log.error("something went wrong: {} ", e.toString());
 			}

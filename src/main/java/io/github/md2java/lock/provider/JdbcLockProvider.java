@@ -1,20 +1,16 @@
 package io.github.md2java.lock.provider;
 
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.DependsOn;
-import org.springframework.core.env.Environment;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -25,11 +21,11 @@ import io.github.md2java.lock.util.Constants;
 import io.github.md2java.lock.util.DBUtil;
 import io.github.md2java.lock.util.MemoryUtil;
 import io.github.md2java.lock.util.NodeUtil;
+import io.github.md2java.lock.util.QueryList;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @RequiredArgsConstructor
-@DependsOn("beanScannerUtil")
 @Slf4j
 public class JdbcLockProvider implements LockProvider {
 
@@ -40,11 +36,8 @@ public class JdbcLockProvider implements LockProvider {
 
 	private String driverClassName;
 
-	@Autowired
-	private Environment env;
-
-	@PostConstruct
-	public void init() throws SQLException {
+	@Override
+	public void init() {
 		node = NodeUtil.hostId();
 		jdbcTemplate = new JdbcTemplate(dataSource);
 		this.driverClassName = DBUtil.getDriverClassName(dataSource);
@@ -54,13 +47,20 @@ public class JdbcLockProvider implements LockProvider {
 		names.forEach(s -> {
 			monitorLock(s);
 		});
-		
-		
+
 	}
 
 	private void createTableIfNotExist(String locktablename) {
 		if (BooleanUtils.isFalse(doesTableExist(locktablename))) {
-			String createTableQuery = env.getProperty(driverClassName);
+			QueryList[] values = QueryList.values();
+			String createTableQuery = null;
+			for (QueryList queryList : values) {
+				boolean contains = StringUtils.contains(driverClassName.toUpperCase(), queryList.name());
+				if (contains) {
+					createTableQuery = queryList.query();
+					break;
+				}
+			}
 			if (StringUtils.isBlank(createTableQuery)) {
 				log.error("something went wrong to find create table query.");
 				System.exit(1);
@@ -82,7 +82,6 @@ public class JdbcLockProvider implements LockProvider {
 		return updateLastRun;
 	}
 
-
 	@Override
 	public Map<String, Object> monitorLock(String lockName) {
 		Map<String, Object> lockInfo = findLockInfo(lockName);
@@ -94,7 +93,11 @@ public class JdbcLockProvider implements LockProvider {
 		try {
 			jdbcTemplate.queryForObject("SELECT 1 FROM " + tableName + " WHERE 1 = 0", Integer.class);
 			return true;
-		} catch (Exception e) {
+		}
+		 catch (EmptyResultDataAccessException e) {
+				return true;
+			}
+		catch (Exception e) {
 			return false;
 		}
 	}
@@ -103,28 +106,27 @@ public class JdbcLockProvider implements LockProvider {
 		Map<String, Object> mapData = null;
 		try {
 			mapData = jdbcTemplate
-					.queryForMap("SELECT * FROM " + Constants.lockTableName + " WHERE name = " + lockname);
+					.queryForMap("SELECT * FROM " + Constants.lockTableName + " WHERE name =? ", lockname);
 			return mapData;
 		} catch (EmptyResultDataAccessException e) {
-			jdbcTemplate.update(String.format("INSERT INTO %s VALUES(?,?,?)", Constants.lockTableName), lockname,
+			jdbcTemplate.update(String.format("INSERT INTO %s  (name,lastrun,activenode) VALUES(?,?,?)", Constants.lockTableName), lockname,
 					Timestamp.valueOf(LocalDateTime.now()), node);
 			mapData = jdbcTemplate
-					.queryForMap("SELECT * FROM " + Constants.lockTableName + " WHERE name = " + lockname);
+					.queryForMap("SELECT * FROM " + Constants.lockTableName + " WHERE name = ?", lockname);
 			return mapData;
 		} catch (Exception e) {
 			return null;
 		}
 	}
 
-	private Map<String, Object> updateLastRun(String lockname,LockInfo lockInfo){
+	private Map<String, Object> updateLastRun(String lockname, LockInfo lockInfo) {
 		Map<String, Object> mapData = null;
 		try {
-			Timestamp timestamp = Timestamp.valueOf(lockInfo.getLastrun());
 			int update = jdbcTemplate.update(
 					String.format("UPDATE %s set lastrun=? where name=? and activenode=?", Constants.lockTableName),
-					timestamp, lockname, lockInfo.getActiveNode());
+					lockInfo.getLastrun(), lockname, lockInfo.getActiveNode());
 			if (update > 0) {
-				mapData = buildResponse(lockname, lockInfo.getActiveNode(), timestamp);
+				mapData = buildResponse(lockname, lockInfo.getActiveNode(), lockInfo.getLastrun());
 			}
 			return mapData;
 		} catch (Exception e) {
@@ -132,7 +134,7 @@ public class JdbcLockProvider implements LockProvider {
 		}
 	}
 
-	private Map<String, Object> buildResponse(String lockname, String node, Timestamp timestamp) {
+	private Map<String, Object> buildResponse(String lockname, String node, Date timestamp) {
 		Map<String, Object> mapData;
 		mapData = new HashMap<String, Object>();
 		mapData.put("name", lockname);

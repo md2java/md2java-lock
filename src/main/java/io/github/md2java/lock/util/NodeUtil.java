@@ -16,7 +16,7 @@ public class NodeUtil {
 	private static String nodeId;
 	private static String hostName;
 	private static String hostId;
-	@Value("${server.port}")
+	@Value("${server.port:8080}")
 	private String port;
 
 	@PostConstruct

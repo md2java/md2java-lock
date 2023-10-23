@@ -15,7 +15,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class LockAspect {
 
-	private LockService lockService;
+	private final LockService lockService;
 
 	@Pointcut("@annotation(io.github.md2java.lock.annotation.ClusterLock)")
 	public void lockInfo() {

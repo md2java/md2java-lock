@@ -1,6 +1,6 @@
 package io.github.md2java.lock.util;
 
-import java.sql.Timestamp;
+import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,8 +24,8 @@ public class MemoryUtil {
 			lockInfo = LockInfo.builder().lockname(name).build();
 		}
 		lockInfo.setActiveNode(String.valueOf(info.get("activenode")));
-		Timestamp lastRun = (Timestamp) info.get("lastrun");
-		lockInfo.setLastrun(lastRun.toLocalDateTime());
+		Date lastRun =  (Date) info.get("lastrun");
+		lockInfo.setLastrun(lastRun);
 		data.put(name, lockInfo);
 	}
 

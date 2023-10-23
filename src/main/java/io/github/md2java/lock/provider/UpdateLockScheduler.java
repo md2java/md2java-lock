@@ -4,8 +4,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Component
 @Scope("prototype")
+@Slf4j
 public class UpdateLockScheduler  implements Runnable{
 	
 	@Autowired
@@ -16,6 +19,7 @@ public class UpdateLockScheduler  implements Runnable{
 	
 	@Override
 	public void run() {
+		log.info("updateLock started..");
 		lockProvider.updateLock(getLockname());
 		
 	}
