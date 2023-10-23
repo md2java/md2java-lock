@@ -1,6 +1,6 @@
 # MD2JAVA-LOCK
 
-	EnableXXX annotation
+	EnableClusterLock annotation
 	ClusterLock(monitorAt=100s,updateAt=20s,name=unique)
 	LockProvider interface=>{monitorLock(),uploadLock()} with one jdbcLockProvider impl
 	List{lockname,lastrun,activeNode}
