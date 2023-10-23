@@ -4,6 +4,7 @@ import java.util.Map;
 
 public interface LockProvider {
 
-	Map<String ,Object> updateLock();
-	Map<String ,Object> monitorLock();
+	Map<String ,Object> updateLock(String lockName);
+	Map<String ,Object> monitorLock(String lockName);
+	void monitorAll();
 }

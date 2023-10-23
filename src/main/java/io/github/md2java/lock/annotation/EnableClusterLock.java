@@ -16,5 +16,5 @@ import io.github.md2java.lock.LockAutoConfiguration;
 @Import(LockAutoConfiguration.class)
 @Documented
 public @interface EnableClusterLock {
-
+	long monitorAt()default 5*60*1000; //5 mins
 }
