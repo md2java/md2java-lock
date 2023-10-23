@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.sql.DataSource;
@@ -86,18 +87,39 @@ public class JdbcLockProvider implements LockProvider {
 	public Map<String, Object> monitorLock(String lockName) {
 		Map<String, Object> lockInfo = findLockInfo(lockName);
 		MemoryUtil.updateLockInfo(lockName, lockInfo);
+		if (isNeedToSwitchNode(lockInfo)) {
+			switchNode(lockName);
+			lockInfo = findLockInfo(lockName);
+			MemoryUtil.updateLockInfo(lockName, lockInfo);
+			log.info("node-switch to : {} ", node);
+		}
 		return lockInfo;
+	}
+
+	private void switchNode(String lockName) {
+		LockInfo updateLock = LockInfo.builder().activeNode(node).lockname(lockName).lastrun(new Date()).build();
+		updateLastRun(lockName, updateLock);
+	}
+
+	private boolean isNeedToSwitchNode(Map<String, Object> lockInfo) {
+		LockInfo lockInfoModel = MemoryUtil.getLockInfo(String.valueOf(lockInfo.get("name")));
+		Date lastrun = lockInfoModel.getLastrun();
+		Date now = new Date();
+		long updateAt = lockInfoModel.getClusterLock().updateAt();
+		if ((now.getTime() - (lastrun.getTime())) > (updateAt + 100)) {
+
+		}
+
+		return false;
 	}
 
 	private boolean doesTableExist(String tableName) {
 		try {
 			jdbcTemplate.queryForObject("SELECT 1 FROM " + tableName + " WHERE 1 = 0", Integer.class);
 			return true;
-		}
-		 catch (EmptyResultDataAccessException e) {
-				return true;
-			}
-		catch (Exception e) {
+		} catch (EmptyResultDataAccessException e) {
+			return true;
+		} catch (Exception e) {
 			return false;
 		}
 	}
@@ -105,14 +127,15 @@ public class JdbcLockProvider implements LockProvider {
 	private Map<String, Object> findLockInfo(String lockname) {
 		Map<String, Object> mapData = null;
 		try {
-			mapData = jdbcTemplate
-					.queryForMap("SELECT * FROM " + Constants.lockTableName + " WHERE name =? ", lockname);
+			mapData = jdbcTemplate.queryForMap("SELECT * FROM " + Constants.lockTableName + " WHERE name =? ",
+					lockname);
 			return mapData;
 		} catch (EmptyResultDataAccessException e) {
-			jdbcTemplate.update(String.format("INSERT INTO %s  (name,lastrun,activenode) VALUES(?,?,?)", Constants.lockTableName), lockname,
-					Timestamp.valueOf(LocalDateTime.now()), node);
-			mapData = jdbcTemplate
-					.queryForMap("SELECT * FROM " + Constants.lockTableName + " WHERE name = ?", lockname);
+			jdbcTemplate.update(
+					String.format("INSERT INTO %s  (name,lastrun,activenode) VALUES(?,?,?)", Constants.lockTableName),
+					lockname, Timestamp.valueOf(LocalDateTime.now()), node);
+			mapData = jdbcTemplate.queryForMap("SELECT * FROM " + Constants.lockTableName + " WHERE name = ?",
+					lockname);
 			return mapData;
 		} catch (Exception e) {
 			return null;
@@ -147,6 +170,12 @@ public class JdbcLockProvider implements LockProvider {
 	public void monitorAll() {
 		Set<String> names = configuredLocks.keySet();
 		names.forEach(s -> {
+			LockInfo lockInfo = MemoryUtil.getLockInfo(s);
+			if (Objects.nonNull(lockInfo)) {
+				if (StringUtils.equalsIgnoreCase(node, lockInfo.getActiveNode())) {
+					return;
+				}
+			}
 			monitorLock(s);
 		});
 	}
