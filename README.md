@@ -11,10 +11,21 @@
 	
 	how to use:
 	------------
-	1) add dependency
-	2) apply EnableXXX 
+	1) add mvn dependency
+     	<dependency>
+			<groupId>io.github.md2java</groupId>
+			<artifactId>md2java-lock</artifactId>
+			<version>1.0.0-SNAPSHOT</version>
+		</dependency>
+
+	2) apply EnableXXX
+	 @EnableClusterLock(monitorAt = 45*1000,updateAt = 30*1000)
+	 here monitorAt --background job keep checking activenode is working fine
+	  and updateAt --background job keep updating on lockprovider about lastrun.
+	
 	3) apply ClusterLock on method[wherever you needed it]
-	
-	
+	  @ClusterLock(name = "logTest11") 
+	  here name must be unique
+	  
 	
 	
