@@ -38,6 +38,7 @@ public class BeanScannerUtil {
 		if (findFirst.isPresent()) {
 			Class<? extends Object> class1 = applicationContext.getBean(findFirst.get()).getClass();
 			EnableClusterLock extractCustomAnnotation = extractCustomAnnotation(class1, EnableClusterLock.class);
+			MemoryUtil.setEnableClusterLock(extractCustomAnnotation);
 			return extractCustomAnnotation;
 		}
 		return null;
@@ -72,7 +73,7 @@ public class BeanScannerUtil {
 	}
 
 	private boolean isMonitorSpanLess(ClusterLock clusterLock) {
-		return enableClusterLock.monitorAt() < clusterLock.updateAt() + 1 * 60 * 100;
+		return enableClusterLock.monitorAt() < enableClusterLock.updateAt() + 1 * 60 * 100;
 	}
 
 	public static Map<String, ClusterLock> configuredLocks() {

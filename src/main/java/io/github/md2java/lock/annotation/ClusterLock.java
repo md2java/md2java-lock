@@ -12,5 +12,4 @@ import java.lang.annotation.Target;
 @Target(METHOD)
 public @interface ClusterLock {
 	String name();
-	long updateAt() default 1*60*1000; // 1 mins
 }

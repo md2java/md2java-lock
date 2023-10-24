@@ -1,5 +1,7 @@
 package io.github.md2java.lock.provider;
 
+import java.util.Set;
+
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
@@ -18,25 +20,29 @@ public class UpdateLockScheduler  implements Runnable{
 	@Autowired
 	private LockProvider lockProvider;
 	
-	private String lockname;
+	private Set<String> locknames;
 	
 	@Override
 	public void run() {
 		log.info("updateLock started..");
-		LockInfo lockInfo = MemoryUtil.getLockInfo(lockname);
-		if (StringUtils.equalsIgnoreCase(lockInfo.getActiveNode(), NodeUtil.hostId())) {
-			lockProvider.updateLock(getLockname());
-		}
+		getLocknames().stream().forEach(lockname-> {
+			LockInfo lockInfo = MemoryUtil.getLockInfo(lockname);
+			if (StringUtils.equalsIgnoreCase(lockInfo.getActiveNode(), NodeUtil.hostId())) {
+				lockProvider.updateLock(lockname);
+			}			
+		});
+		log.info("updateLock end..");
 	}
 
-	public String getLockname() {
-		return lockname;
+	public Set<String> getLocknames() {
+		return locknames;
 	}
 
-
-	public void setLockname(String lockname) {
-		this.lockname = lockname;
+	public void setLocknames(Set<String> locknames) {
+		this.locknames = locknames;
 	}
+
+	
 	
 	
 	

@@ -106,7 +106,7 @@ public class JdbcLockProvider implements LockProvider {
 		LockInfo lockInfoModel = MemoryUtil.getLockInfo(String.valueOf(lockInfo.get("name")));
 		Date lastrun = lockInfoModel.getLastrun();
 		Date now = new Date();
-		long updateAt = lockInfoModel.getClusterLock().updateAt();
+		long updateAt = MemoryUtil.getEnableClusterLock().updateAt();
 		if ((now.getTime() - (lastrun.getTime())) > (updateAt + 100)) {
 
 		}

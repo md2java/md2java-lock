@@ -37,20 +37,20 @@ public class LockInitializer implements ApplicationListener<ContextRefreshedEven
 		beanScannerUtil.init();
 		lockProvider.init();
 		EnableClusterLock enableClusterLock = BeanScannerUtil.enableClusterLock();
+		
 		ScheduledExecutorService newScheduledThreadPool = Executors.newScheduledThreadPool(2,
-				new CustomizableThreadFactory("monitor_"));
+				new CustomizableThreadFactory("monitor-"));
 		newScheduledThreadPool.scheduleWithFixedDelay(() -> lockProvider.monitorAll(), 100,
 				enableClusterLock.monitorAt(), TimeUnit.MILLISECONDS);
 		Map<String, ClusterLock> configuredLocks = BeanScannerUtil.configuredLocks();
+		
 		ScheduledExecutorService schedulerService = Executors.newScheduledThreadPool(configuredLocks.size(),
-				new CustomizableThreadFactory("updateLock_"));
-
-		configuredLocks.entrySet().stream().forEach(s -> {
-			UpdateLockScheduler scheduler = applicationContext.getBean(UpdateLockScheduler.class);
-			scheduler.setLockname(s.getKey());
-			schedulerService.scheduleWithFixedDelay(scheduler, 1000, s.getValue().updateAt(), TimeUnit.MILLISECONDS);
-			log.info("scheduler intialized: {} ",scheduler);
-		});
+				new CustomizableThreadFactory("updateLock-"));
+		UpdateLockScheduler scheduler = applicationContext.getBean(UpdateLockScheduler.class);
+		scheduler.setLocknames(configuredLocks.keySet());
+		schedulerService.scheduleWithFixedDelay(scheduler, 1000, enableClusterLock.updateAt(), TimeUnit.MILLISECONDS);
+		log.info("scheduler intialized: {} ",scheduler);
+		
 		log.info("Initialized: {} ", this);
 	}
 

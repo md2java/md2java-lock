@@ -3,6 +3,7 @@ package io.github.md2java.lock.model;
 import java.util.Date;
 
 import io.github.md2java.lock.annotation.ClusterLock;
+import io.github.md2java.lock.annotation.EnableClusterLock;
 import lombok.Builder;
 import lombok.Data;
 
@@ -13,5 +14,6 @@ public class LockInfo {
 	private Date lastrun;
 	private String activeNode;
 	private ClusterLock clusterLock;
+	private EnableClusterLock enableClusterLock;
 
 }
