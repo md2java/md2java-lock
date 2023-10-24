@@ -2,10 +2,12 @@ package io.github.md2java.lock.provider;
 
 import java.util.Map;
 
-public interface LockProvider {
+import io.github.md2java.lock.model.LockInfo;
 
-	Map<String ,Object> updateLock(String lockName);
-	Map<String ,Object> monitorLock(String lockName);
-	void monitorAll();
-	void init();
+public interface LockProvider {
+	void initilize();
+	Map<String ,Object> updateLockInfo(LockInfo lockInfo);
+	Map<String ,Object> updateNodeInfo(LockInfo lockInfo);
+	Map<String, Object> findLockInfo(String lockname);
+	
 }
