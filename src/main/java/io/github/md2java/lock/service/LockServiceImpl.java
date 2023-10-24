@@ -1,6 +1,8 @@
 package io.github.md2java.lock.service;
 
 import java.util.Date;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -22,6 +24,14 @@ public class LockServiceImpl implements LockService {
 		Object ret = null;
 		ClusterLock clusterLock = AnnotationUtil.annotatedObject(pjp, ClusterLock.class);
 		LockInfo lockInfo = MemoryUtil.getLockInfo(clusterLock.name());
+		if(Objects.isNull(lockInfo)) {
+			try {
+				TimeUnit.SECONDS.sleep(3);
+				lockInfo = MemoryUtil.getLockInfo(clusterLock.name());
+			} catch (InterruptedException e) {
+				;
+			}
+		}
 		if (isActiveNodeSame(lockInfo)) {
 			try {
 				ret = pjp.proceed(pjp.getArgs());
