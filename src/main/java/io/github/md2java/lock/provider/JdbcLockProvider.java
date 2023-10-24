@@ -63,14 +63,13 @@ public class JdbcLockProvider implements LockProvider {
 				}
 			}
 			if (StringUtils.isBlank(createTableQuery)) {
-				log.error("something went wrong to find create table query.");
-				System.exit(1);
+				throw new RuntimeException("something went wrong to find create table query.");
 			}
 			try {
 				jdbcTemplate.execute(createTableQuery);
 			} catch (Exception e) {
 				log.error("something went wrong to to execute query: {} => {} ", createTableQuery, e.toString());
-				System.exit(1);
+				throw e;
 			}
 		}
 
@@ -99,8 +98,8 @@ public class JdbcLockProvider implements LockProvider {
 	private void switchNode(String lockName) {
 		LockInfo updateLock = LockInfo.builder().activeNode(node).lockname(lockName).lastrun(new Date()).build();
 		Map<String, Object> lockDetails = updateSwitchNode(lockName, updateLock);
-		if(Objects.nonNull(lockDetails)) {
-			log.debug("lock switched node to : {} ",updateLock.getActiveNode());			
+		if (Objects.nonNull(lockDetails)) {
+			log.debug("lock switched node to : {} ", updateLock.getActiveNode());
 		}
 	}
 
@@ -110,7 +109,7 @@ public class JdbcLockProvider implements LockProvider {
 		Date now = new Date();
 		long updateAt = MemoryUtil.getEnableClusterLock().updateAt();
 		if ((now.getTime() - lastrun.getTime()) > (updateAt + 100)) {
-          return true;
+			return true;
 		}
 		return false;
 	}
@@ -158,19 +157,19 @@ public class JdbcLockProvider implements LockProvider {
 			return null;
 		}
 	}
-	
+
 	private Map<String, Object> updateSwitchNode(String lockname, LockInfo lockInfo) {
 		Map<String, Object> mapData = null;
 		try {
 			int update = jdbcTemplate.update(
 					String.format("UPDATE %s set lastrun=? ,activenode=? where name=? ", Constants.lockTableName),
-					lockInfo.getLastrun(), lockInfo.getActiveNode(),lockname);
+					lockInfo.getLastrun(), lockInfo.getActiveNode(), lockname);
 			if (update > 0) {
 				mapData = buildResponse(lockname, lockInfo.getActiveNode(), lockInfo.getLastrun());
 			}
 			return mapData;
 		} catch (Exception e) {
-			log.error("something went wrong: ",e);
+			log.error("something went wrong: ", e);
 			return null;
 		}
 	}

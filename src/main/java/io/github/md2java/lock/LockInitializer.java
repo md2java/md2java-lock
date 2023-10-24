@@ -5,6 +5,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
@@ -28,6 +29,9 @@ public class LockInitializer implements ApplicationListener<ContextRefreshedEven
 	private final ApplicationContext applicationContext;
 	private final BeanScannerUtil beanScannerUtil;
 
+	@Value("${lock.bg.threads.size:2}")
+	private int bgThredsSize;
+
 	@Override
 	public void onApplicationEvent(ContextRefreshedEvent event) {
 		init();
@@ -36,20 +40,19 @@ public class LockInitializer implements ApplicationListener<ContextRefreshedEven
 	public void init() {
 		beanScannerUtil.init();
 		lockProvider.init();
-		EnableClusterLock enableClusterLock = BeanScannerUtil.enableClusterLock();
-		
-		ScheduledExecutorService newScheduledThreadPool = Executors.newScheduledThreadPool(2,
-				new CustomizableThreadFactory("monitor-"));
-		newScheduledThreadPool.scheduleWithFixedDelay(() -> lockProvider.monitorAll(), 100,
-				enableClusterLock.monitorAt(), TimeUnit.MILLISECONDS);
+		EnableClusterLock enabledLock = BeanScannerUtil.enableClusterLock();
 		Map<String, ClusterLock> configuredLocks = BeanScannerUtil.configuredLocks();
-		
-		ScheduledExecutorService schedulerService = Executors.newScheduledThreadPool(configuredLocks.size(),
-				new CustomizableThreadFactory("updateLock-"));
+
+		CustomizableThreadFactory enableThreadGroup = new CustomizableThreadFactory("monitor-");
+		ScheduledExecutorService enableSE = Executors.newScheduledThreadPool(bgThredsSize, enableThreadGroup);
+		TimeUnit milli = TimeUnit.MILLISECONDS;
+		enableSE.scheduleWithFixedDelay(lockProvider::monitorAll, 100, enabledLock.monitorAt(), milli);
+
+		CustomizableThreadFactory updateThreadGroup = new CustomizableThreadFactory("updateLock-");
+		ScheduledExecutorService updateSE = Executors.newScheduledThreadPool(bgThredsSize, updateThreadGroup);
 		UpdateLockScheduler scheduler = applicationContext.getBean(UpdateLockScheduler.class);
 		scheduler.setLocknames(configuredLocks.keySet());
-		schedulerService.scheduleWithFixedDelay(scheduler, 1000, enableClusterLock.updateAt(), TimeUnit.MILLISECONDS);
-		log.debug("scheduler intialized: {} ",scheduler);
+		updateSE.scheduleWithFixedDelay(scheduler, 1000, enabledLock.updateAt(), milli);
 		log.debug("Initialized: {} ", this);
 	}
 

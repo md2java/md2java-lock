@@ -1,13 +1,12 @@
 package io.github.md2java.lock;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
-import lombok.RequiredArgsConstructor;
-
 @Configuration
-@ComponentScan("io.github.md2java.lock")
-@RequiredArgsConstructor
+@ComponentScan
+@ConditionalOnProperty(havingValue = "true",name = "lock.enabled",matchIfMissing = true)
 public class LockAutoConfiguration {
 	
 	

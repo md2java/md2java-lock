@@ -61,7 +61,7 @@ public class BeanScannerUtil {
 					if (ret.containsKey(clusterLock.name()) || isMonitorSpanLess(clusterLock)) {
 						String messageTemplate = "duplicate Lockname: {} found or isMonitorSpanLess please correct and retry => {}";
 						log.warn(messageTemplate, clusterLock.name(), clusterLock);
-						System.exit(1);
+						throw new RuntimeException("duplicate Lockname found error");
 					}
 					ret.put(clusterLock.name(), clusterLock);
 					LockInfo info = LockInfo.builder().clusterLock(clusterLock).lockname(clusterLock.name()).build();
