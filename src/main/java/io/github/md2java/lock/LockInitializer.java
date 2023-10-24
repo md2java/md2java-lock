@@ -49,9 +49,8 @@ public class LockInitializer implements ApplicationListener<ContextRefreshedEven
 		UpdateLockScheduler scheduler = applicationContext.getBean(UpdateLockScheduler.class);
 		scheduler.setLocknames(configuredLocks.keySet());
 		schedulerService.scheduleWithFixedDelay(scheduler, 1000, enableClusterLock.updateAt(), TimeUnit.MILLISECONDS);
-		log.info("scheduler intialized: {} ",scheduler);
-		
-		log.info("Initialized: {} ", this);
+		log.debug("scheduler intialized: {} ",scheduler);
+		log.debug("Initialized: {} ", this);
 	}
 
 }

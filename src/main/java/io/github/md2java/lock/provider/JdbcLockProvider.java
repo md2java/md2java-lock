@@ -85,21 +85,23 @@ public class JdbcLockProvider implements LockProvider {
 
 	@Override
 	public Map<String, Object> monitorLock(String lockName) {
-		log.info("monitor scheduler started...");
+		log.debug("monitor scheduler started...");
 		Map<String, Object> lockInfo = findLockInfo(lockName);
 		MemoryUtil.updateLockInfo(lockName, lockInfo);
 		if (isNeedToSwitchNode(lockInfo)) {
 			switchNode(lockName);
 			lockInfo = findLockInfo(lockName);
 			MemoryUtil.updateLockInfo(lockName, lockInfo);
-			log.info("node-switch to : {} ", node);
 		}
 		return lockInfo;
 	}
 
 	private void switchNode(String lockName) {
 		LockInfo updateLock = LockInfo.builder().activeNode(node).lockname(lockName).lastrun(new Date()).build();
-		updateLastRun(lockName, updateLock);
+		Map<String, Object> lockDetails = updateSwitchNode(lockName, updateLock);
+		if(Objects.nonNull(lockDetails)) {
+			log.debug("lock switched node to : {} ",updateLock.getActiveNode());			
+		}
 	}
 
 	private boolean isNeedToSwitchNode(Map<String, Object> lockInfo) {
@@ -107,10 +109,9 @@ public class JdbcLockProvider implements LockProvider {
 		Date lastrun = lockInfoModel.getLastrun();
 		Date now = new Date();
 		long updateAt = MemoryUtil.getEnableClusterLock().updateAt();
-		if ((now.getTime() - (lastrun.getTime())) > (updateAt + 100)) {
-
+		if ((now.getTime() - lastrun.getTime()) > (updateAt + 100)) {
+          return true;
 		}
-
 		return false;
 	}
 
@@ -157,6 +158,22 @@ public class JdbcLockProvider implements LockProvider {
 			return null;
 		}
 	}
+	
+	private Map<String, Object> updateSwitchNode(String lockname, LockInfo lockInfo) {
+		Map<String, Object> mapData = null;
+		try {
+			int update = jdbcTemplate.update(
+					String.format("UPDATE %s set lastrun=? ,activenode=? where name=? ", Constants.lockTableName),
+					lockInfo.getLastrun(), lockInfo.getActiveNode(),lockname);
+			if (update > 0) {
+				mapData = buildResponse(lockname, lockInfo.getActiveNode(), lockInfo.getLastrun());
+			}
+			return mapData;
+		} catch (Exception e) {
+			log.error("something went wrong: ",e);
+			return null;
+		}
+	}
 
 	private Map<String, Object> buildResponse(String lockname, String node, Date timestamp) {
 		Map<String, Object> mapData;
@@ -174,6 +191,7 @@ public class JdbcLockProvider implements LockProvider {
 			LockInfo lockInfo = MemoryUtil.getLockInfo(s);
 			if (Objects.nonNull(lockInfo)) {
 				if (StringUtils.equalsIgnoreCase(node, lockInfo.getActiveNode())) {
+					log.debug("skipped because activenode is the current node");
 					return;
 				}
 			}

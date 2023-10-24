@@ -24,7 +24,7 @@ public class NodeUtil {
 		nodeId = UUID.randomUUID().toString();
 		hostName = getHostName();
 		hostId = String.format("%s_%s", hostName(),port);
-		log.info("initialized - hostId: {} ",hostId());
+		log.debug("initialized - hostId: {} ",hostId());
 	}
 
 	private static String getHostName() {

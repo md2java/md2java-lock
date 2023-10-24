@@ -29,7 +29,7 @@ public class BeanScannerUtil {
 	public void init() {
 		enableClusterLock = findEnableClusterLock();
 		configuredLocks = findAllClusterLock();
-		log.info("configuredLocks: {} ", configuredLocks());
+		log.debug("configuredLocks: {} ", configuredLocks());
 	}
 
 	private EnableClusterLock findEnableClusterLock() {
