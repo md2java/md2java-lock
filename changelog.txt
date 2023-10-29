@@ -1,6 +1,9 @@
-1) ver=> 1.0.0
----------------
+1.0.0:
 first release with minimum requirement
 
-2) ver=> 1.0.1
+1.0.1:
 light version of LockProvider --refactoring.
+
+1.0.2:
+switchlock logic changed to improve performance with minimal switching node.
+
