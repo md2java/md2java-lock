@@ -11,7 +11,7 @@
 	</parent>
 	<groupId>io.github.md2java</groupId>
 	<artifactId>md2java-lock</artifactId>
-	<version>1.0.2-SNAPSHOT</version>
+	<version>1.0.2</version>
 	<name>md2java-lock</name>
 	<description>md2java-lock distributed lock for spring boot application</description>
 	<url>https://github.com/md2java/md2java-lock</url>
