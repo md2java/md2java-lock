@@ -71,10 +71,10 @@ public class ProviderWrapperImpl implements ProviderWrapper {
 
 	private boolean isNeedToSwitchNode(Map<String, Object> lockInfo) {
 		LockInfo lockInfoModel = MemoryUtil.getLockInfo(String.valueOf(lockInfo.get("name")));
-		Date lastrun = lockInfoModel.getLastrun();
+		Date lastnoderun = lockInfoModel.getLastnoderun();
 		Date now = new Date();
 		long updateAt = MemoryUtil.getEnableClusterLock().updateAt();
-		if ((now.getTime() - lastrun.getTime()) > (updateAt + 100)) {
+		if ((now.getTime() - lastnoderun.getTime()) > (updateAt + 100)) {
 			return true;
 		}
 		return false;

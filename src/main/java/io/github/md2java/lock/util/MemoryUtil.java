@@ -28,6 +28,8 @@ public class MemoryUtil {
 		lockInfo.setActiveNode(String.valueOf(info.get("activenode")));
 		Date lastRun = (Date) info.get("lastrun");
 		lockInfo.setLastrun(lastRun);
+		Date lastnodeRun = (Date) info.get("lastnoderun");
+		lockInfo.setLastnoderun(lastnodeRun);
 		data.put(name, lockInfo);
 	}
 

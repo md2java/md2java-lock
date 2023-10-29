@@ -28,8 +28,9 @@ public class UpdateLockScheduler implements Runnable {
 		getLocknames().stream().forEach(lockname -> {
 			LockInfo lockInfo = MemoryUtil.getLockInfo(lockname);
 			if (BooleanUtils.isFalse(StringUtils.equalsIgnoreCase(lockInfo.getActiveNode(), NodeUtil.hostId()))) {
-				log.debug("skipped {} current node:{} is not activenode:{} ", lockInfo.getLockname(), NodeUtil.hostId(),
-						lockInfo.getActiveNode());
+				String msgTemplate = "skipped {} current node:{} is not activenode:{} ";
+				log.debug(msgTemplate, lockInfo.getLockname(), NodeUtil.hostId(), lockInfo.getActiveNode());
+				return;
 			}
 			log.debug("updateLock started..");
 			providerWrapper.updateLock(lockname);

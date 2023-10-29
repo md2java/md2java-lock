@@ -58,10 +58,16 @@ public class BeanScannerUtil {
 			for (Method method : beanClass.getDeclaredMethods()) {
 				if (method.isAnnotationPresent(ClusterLock.class)) {
 					ClusterLock clusterLock = method.getAnnotation(ClusterLock.class);
-					if (ret.containsKey(clusterLock.name()) || isMonitorSpanLess(clusterLock)) {
-						String messageTemplate = "duplicate Lockname: {} found or isMonitorSpanLess please correct and retry => {}";
+					if (ret.containsKey(clusterLock.name())) {
+						String messageTemplate = "duplicate Lockname: {} found - please correct and retry => {}";
 						log.warn(messageTemplate, clusterLock.name(), clusterLock);
-						throw new RuntimeException("duplicate Lockname found error");
+						String duplicateLockErr = "duplicate Lockname: %s found error"; 
+						throw new RuntimeException(String.format(duplicateLockErr, clusterLock.name()));
+					}
+					if (isMonitorSpanLess(clusterLock)) {
+						String monitorSpanTempl = "monitorAtupdateAtLessGap found error - required gap of %s milli atleast";
+						String messageMSL = String.format(monitorSpanTempl, 2*1000);
+						throw new RuntimeException(messageMSL);
 					}
 					ret.put(clusterLock.name(), clusterLock);
 					LockInfo info = LockInfo.builder().clusterLock(clusterLock).lockname(clusterLock.name()).build();
@@ -73,7 +79,7 @@ public class BeanScannerUtil {
 	}
 
 	private boolean isMonitorSpanLess(ClusterLock clusterLock) {
-		return enableClusterLock.monitorAt() < enableClusterLock.updateAt() + 1 * 60 * 100;
+		return enableClusterLock.monitorAt() <= (1*enableClusterLock.updateAt()+2*1000);
 	}
 
 	public static Map<String, ClusterLock> configuredLocks() {

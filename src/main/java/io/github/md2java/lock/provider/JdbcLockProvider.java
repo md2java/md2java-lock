@@ -1,7 +1,5 @@
 package io.github.md2java.lock.provider;
 
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -92,9 +90,10 @@ public class JdbcLockProvider implements LockProvider {
 					lockname);
 			return mapData;
 		} catch (EmptyResultDataAccessException e) {
+			Date currTime = new Date();
 			jdbcTemplate.update(
-					String.format("INSERT INTO %s  (name,lastrun,activenode) VALUES(?,?,?)", Constants.lockTableName),
-					lockname, Timestamp.valueOf(LocalDateTime.now()), node);
+					String.format("INSERT INTO %s  (name,lastrun,lastnoderun,activenode) VALUES(?,?,?,?)", Constants.lockTableName),
+					lockname, currTime,currTime, node);
 			mapData = jdbcTemplate.queryForMap("SELECT * FROM " + Constants.lockTableName + " WHERE name = ?",
 					lockname);
 			return mapData;
@@ -106,11 +105,12 @@ public class JdbcLockProvider implements LockProvider {
 	private Map<String, Object> updateLastRun(String lockname, LockInfo lockInfo) {
 		Map<String, Object> mapData = null;
 		try {
+			lockInfo.setLastnoderun(new Date());
 			int update = jdbcTemplate.update(
-					String.format("UPDATE %s set lastrun=? where name=? and activenode=?", Constants.lockTableName),
-					lockInfo.getLastrun(), lockname, lockInfo.getActiveNode());
+					String.format("UPDATE %s set lastrun=?,lastnoderun=? where name=? and activenode=?", Constants.lockTableName),
+					lockInfo.getLastrun(),lockInfo.getLastnoderun(), lockname, lockInfo.getActiveNode());
 			if (update > 0) {
-				mapData = buildResponse(lockname, lockInfo.getActiveNode(), lockInfo.getLastrun());
+				mapData = buildResponse(lockname, lockInfo.getActiveNode(), lockInfo.getLastrun(),lockInfo.getLastnoderun());
 			}
 			return mapData;
 		} catch (Exception e) {
@@ -121,11 +121,12 @@ public class JdbcLockProvider implements LockProvider {
 	private Map<String, Object> updateSwitchNode(String lockname, LockInfo lockInfo) {
 		Map<String, Object> mapData = null;
 		try {
+			lockInfo.setLastnoderun(new Date());
 			int update = jdbcTemplate.update(
-					String.format("UPDATE %s set lastrun=? ,activenode=? where name=? ", Constants.lockTableName),
-					lockInfo.getLastrun(), lockInfo.getActiveNode(), lockname);
+					String.format("UPDATE %s set lastrun=?,lastnoderun=? ,activenode=? where name=? ", Constants.lockTableName),
+					lockInfo.getLastrun(),lockInfo.getLastnoderun(),lockInfo.getActiveNode(), lockname);
 			if (update > 0) {
-				mapData = buildResponse(lockname, lockInfo.getActiveNode(), lockInfo.getLastrun());
+				mapData = buildResponse(lockname, lockInfo.getActiveNode(), lockInfo.getLastrun(),lockInfo.getLastnoderun());
 			}
 			return mapData;
 		} catch (Exception e) {
@@ -134,12 +135,13 @@ public class JdbcLockProvider implements LockProvider {
 		}
 	}
 
-	private Map<String, Object> buildResponse(String lockname, String node, Date timestamp) {
+	private Map<String, Object> buildResponse(String lockname, String node, Date lastrun, Date lastnoderun) {
 		Map<String, Object> mapData;
 		mapData = new HashMap<String, Object>();
 		mapData.put("name", lockname);
-		mapData.put("lastrun", timestamp);
+		mapData.put("lastrun", lastrun);
 		mapData.put("activenode", node);
+		mapData.put("lastnoderun", lastnoderun);
 		return mapData;
 	}
 

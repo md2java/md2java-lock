@@ -12,6 +12,7 @@ import lombok.Data;
 public class LockInfo {
 	private String lockname;
 	private Date lastrun;
+	private Date lastnoderun;
 	private String activeNode;
 	private ClusterLock clusterLock;
 	private EnableClusterLock enableClusterLock;
